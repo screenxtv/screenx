@@ -1,0 +1,280 @@
+<meta http-equiv='content-type' content='charset=utf-8'>
+<script src="terminal.js"></script>
+<script>
+
+function hash(rnd,pss){
+	var arr=[];
+	for(var i=0;i<16;i++)arr[i]=i+"0123456789ABCDEF".indexOf(rnd.charAt(i));
+	for(var i=0;i<10;i++){
+		for(var j=0;j<pss.length;j++){
+			var c=pss.charCodeAt(j);
+			for(var k=0;k<16;k++){
+				arr[(i*j+c+3*k)%16]+=(arr[(c*j+7*c+5*k)%16]*arr[(c*i+5*c+7*k)%16]+c+k)%16;
+			}
+		}
+	}
+	var s="";
+	for(var i=0;i<16;i++)s+="0123456789ABCDEF".charAt(arr[i]%16);
+	return s;
+}
+
+
+function $(id){return document.getElementById(id);}
+var ws=null;
+var terminal=null;
+var delay_timer=0;
+var delay_string="";
+function delay_func(){
+	if(delay_timer)return;
+	if(!delay_string)return;
+	for(var i=0;i<delay_string.length;i++)terminal.write(delay_string.charAt(i));
+	terminal.updateView();
+	updateInput(terminal);
+	delay_string="";
+	delay_timer=setTimeout(function(){delay_timer=0;delay_func();},100);
+}
+function onBellBackgroundChangeTimer(){
+	document.body.style.background=null;
+	onBellBackgroundChangeTimer.timer=0;
+}
+function onBellBackgroundChange(){
+	if(onBellBackgroundChangeTimer.timer){
+		clearTimeout(onBellBackgroundChangeTimer.timer);
+	}
+	document.body.style.background="white";
+	onBellBackgroundChangeTimer.timer=setTimeout(onBellBackgroundChangeTimer,200);
+}
+var screenname;
+function start(password){
+	if(ws)return;
+	document.title="terminal: connecting...";
+	var path=location.pathname;
+	path=path.substr(0,path.lastIndexOf("/"));
+	var host=location.host||"localhost";
+	var protocol="ws",port=8888;
+	if(location.protocol.indexOf("https")==0){protocol="wss";port=8889;}
+	ws=new WebSocket(protocol+"://"+host+":"+port+"/login");
+	ws.mode=0;
+	ws.onopen=function(){document.title="terminal: connected";ws.mode=1}
+	ws.onmessage=function(e){
+		if(ws.mode==3){delay_string+=e.data;delay_func();return;}
+		var type=e.data.substr(0,2);var message=e.data.substr(2);
+		if(ws.mode==1){
+			if(type=="OK"){
+				document.title="terminal: auth...";
+				ws.send(screenname+":"+W+"x"+H+":"+hash(message,password));
+				ws.mode=2;
+			}else{
+				if(type=="NG")ws.errormessage=message;
+				ws.close();
+			}
+		}else if(ws.mode==2){
+			if(type=="OK"){
+				ws.mode=3;
+				terminal=new Terminal("terminal",W,H,Terminal.defaultColorList[localStorage.terminalcolor]);
+				terminal.onBell=onBellBackgroundChange;
+				document.title=screenname+" "+W+"x"+H+" : "+terminal.color.name;
+			}else{
+				if(type=="NG")ws.errormessage=message;
+				ws.close();
+			}
+		}
+	}
+	ws.onerror=function(e){
+		showLogin(ws.errormessage?ws.errormessage:ws.mode==0?"connect failed":"unknown error");
+		ws.close();ws=null;
+	}
+	ws.onclose=function(e){
+		showLogin(ws.errormessage?ws.errormessage:ws.mode==3?"connection closed":ws.mode==0?"connect failed":"unknown error");
+		ws=null;
+	}
+}
+
+document.onkeypress=function(e){
+	if(!$("login").style.display||ws==null)return true;
+	if(e.metaKey)return;
+	var code=e.keyCode||e.which;
+	if($("input").value&&code!=13)return true;
+	if(code>255)return false;
+	if(e.altKey)return false;
+	if((e.isChar===false||(window.opera&&e.keyCode!=e.which))&&37<=code&&code<=40){
+		keyFunc(-code,false);
+		return false;
+	}
+	
+	if(e.ctrlKey)code%=32;
+	else if(code==8)code=0x7F;
+	keyFunc(code,false);
+	return false;
+}
+document.onkeydown=function(e){
+	var code=e.which;
+	if(e.metaKey){
+		if(code==187){changeFontSize(+2);return false;}//CMD +
+		if(code==189){changeFontSize(-2);return false;}//CMD -
+		if(code==190){if(ws)ws.send(String.fromCharCode(3));return false;}//CMD .
+		if(code==188){changeColor();return false;}//CMD ,
+		if(code==78){window.open(location.href);return false;}//CMD N
+		return;
+	}
+
+	if(!$("login").style.display||ws==null)return true;
+	var input=$("input");input.focus();if(input.value){return true;}
+	
+	if(code>255)return false;
+	if(e.altKey){if(code!=18&&code!=229){keyFunc(0x1B);keyFunc(e.ctrlKey?code%32:code,true);}return false;}
+	if(e.ctrlKey){if(code!=17)keyFunc(code==189?31:code%32,true);return false;}
+	if(37<=code&&code<=40){keyFunc(-code,true);return false;}
+	else if(code==8){keyFunc(0x7F,true);return;}
+	else if(code==27||code==9){keyFunc(code,true);return false;}
+	return;
+}
+
+function keyFunc(code,type){
+	if(keyFunc.type&&!type&&keyFunc.code==code){keyFunc.type=false;return;}
+	keyFunc.type=type;keyFunc.code=code;
+	switch(code){
+		case -38:ws.send("\x1BOA");return;//up
+		case -40:ws.send("\x1BOB");return;//down
+		case -39:ws.send("\x1BOC");return;//right
+		case -37:ws.send("\x1BOD");return;//left
+	}
+	var val=$("input").value;
+	if(val){if(code==13){$("input").value=null;ws.send(val);}}
+	else if(code==0)ws.send("\x00\x00");
+	else{ws.send(String.fromCharCode(code));}
+}
+
+
+function changeColor(){
+	var index=parseInt(localStorage.terminalcolor);
+	index=(index?index+1:1)%Terminal.defaultColorList.length;
+	if($("login").style.display)document.title=screenname+" "+W+"x"+H+" : "+Terminal.defaultColorList[index].name;
+	if(terminal)terminal.setColor(Terminal.defaultColorList[index]);
+	localStorage.terminalcolor=index;
+}
+function showLogin(msg){
+	if(msg.indexOf("wrong password")>=0){try{sessionStorage.password=$("password").value="";}catch(e){}}
+	$("login").style.display=null;
+	terminal=new Terminal("terminal",W=20,H=10,Terminal.defaultColorList[localStorage.terminalcolor]);
+	for(var i=0;i<msg.length;i++)terminal.write(msg.charAt(i));
+	terminal.updateView();
+	
+	window.onresize();
+	var screenname="screen1";
+	try{if(sessionStorage.screenname)screenname=sessionStorage.screenname}catch(e){}
+	$("screenname").value=screenname;
+	var pswd="";try{pswd=sessionStorage.password||"";}catch(e){}
+	$("password").value=pswd;
+	if($("password").value)$("screenname").focus();
+	else $("password").focus();
+}
+window.onresize=function(){
+	var tdiv=$("terminal");
+	var ol=tdiv.offsetLeft+2,ot=tdiv.offsetTop+2;
+	var cw=terminal.char_w,ch=terminal.char_h;
+	var w=Math.floor((window.innerWidth-ol-ol*2/3)/cw);
+	var h=Math.floor((window.innerHeight-ot-ol/4)/ch);
+	if(W!=w||H!=h){
+		W=w;H=h;
+		if(ws)ws.send(String.fromCharCode(0)+"w"+W+"x"+H+";");
+		$("loginmsg").innerHTML="Login "+W+"x"+H;
+		if(!$("login").style.display){document.title="screenx login";}
+		else document.title=screenname+" "+W+"x"+H+" : "+terminal.color.name;
+		terminal.resize(W,H);
+		terminal.updateView();
+	}
+};
+
+function login(){
+	$("login").style.display="none";
+	screenname=$("screenname").value;
+	start($("password").value);
+	try{
+		sessionStorage.screenname=$("screenname").value;
+		sessionStorage.password=$("password").value;
+	}catch(e){}
+}
+var W,H;
+window.onbeforeunload=function(){if($("login").style.display=="none")return false;}
+window.onunload=function(){if(ws)ws.close();ws=null;terminal=null;}
+function init(){
+	if(window.opener){
+		try{
+			var pswd=$("password").value=window.opener.getPassword();
+			sessionStorage.password=pswd;
+		}catch(e){}
+	}
+	$("terminal").style.fontSize=(localStorage.terminalfontsize?localStorage.terminalfontsize:"16")+"px";
+	showLogin("login:");
+}
+function getPassword(){try{return sessionStorage.password;}catch(e){return ""}}
+function changeFontSize(ds,flag){
+	var t=$("terminal");
+	var s=localStorage.terminalfontsize?parseInt(localStorage.terminalfontsize):16;
+	if(flag)s=ds;else s+=ds;
+	if(s<6)s=6;if(s>40)s=40;s=Math.floor(s/2)*2;
+	$('terminal').style.fontSize=s+"px";
+	if(terminal){terminal.calcSize();terminal.updateView();}
+	window.onresize();
+	localStorage.terminalfontsize=s;
+}
+function updateInput(term){
+	var input=$("input");
+	var termdiv=$("terminal");
+	input.style.height=term.char_h;
+	input.style.color=term.color.foreground;
+	input.style.fontSize=termdiv.style.fontSize;
+	input.style.left=termdiv.offsetLeft+term.cursor.offsetLeft;
+	input.style.top=termdiv.offsetTop+term.cursor.offsetTop+1;
+}
+</script>
+<style>
+body{
+	background:silver;
+	user-select:none;
+	-webkit-user-select:none;
+	-khtml-user-select:none;
+	-o-user-select:none;
+	-moz-user-select:none;
+	overflow:hidden;
+	padding:0;
+	margin:0;
+}
+#terminal{
+	border:2px solid gray;margin:8px 0px 0px 16px;z-index:16383;
+}
+.full{position:absolute;width:100%;height:100%;left:0;top:0;}
+form{background:white;width:360px;}
+#screenname{background:none;border:none;}
+#input{
+	position:absolute;border:none;outline:none;margin:none;width:100%;background:none;z-index:32767;
+	font-family:Osaka-Mono,SimSun,MS-Gothic,MS-Mincho,monospace;
+}
+#inputdiv{position:absolute;left:0;top:0;width:100%;height:0;overflow:hidden;}
+div.menu span{
+	background:#999;margin:0;border:1px solid #777;cursor:pointer;
+	color:black;font-size:16px;font-weight:bold;
+	display:inline-block;padding:0px 10px;
+}
+div.menu span:hover{background:#666;}
+div.menu span:active{background:#555;}
+</style>
+<body onload="init()">
+<div class="menu">
+	<span onclick="window.open(location.href);return false;">new</span><span onmousedown="changeColor();return false;">color</span><span onclick="changeFontSize(+2);return false;">+</span><span onmousedown="changeFontSize(-2);return false;">-</span>
+</div>
+<div id="terminal" style="font-size:16px;"></div>
+<div id="inputdiv"><input id="input" onkeyup="var h=value?'100%':'0%';if(h!=$('inputdiv').style.height){$('inputdiv').style.height=h;$('inputdiv').scrollLeft=0;}"></div>
+<div id="login">
+	<div class="full" style="background:black;opacity:0.5;"></div>
+	<center class="full">
+		<div style="height:20%;"></div>
+		<form onsubmit="if($('screenname').value&&$('password').value)login();return false;">
+			<br><b id="loginmsg">Login</b><br>
+			screen: <input type=text id="screenname" value="screenx"><br>
+			password: <input type=password id="password"><br>
+			<input type=submit style="position:absolute;left:0;top:0;width:0;height:0;opacity:0;"><br><br>
+		</form>
+	</center>
+</div>

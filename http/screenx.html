@@ -1,0 +1,260 @@
+<meta http-equiv='content-type' content='charset=utf-8'>
+<script src="terminal.js"></script>
+<script>
+
+
+function $(id){return document.getElementById(id);}
+var ws=null;
+var terminal=null;
+var delay_timer=0;
+var delay_string="";
+function delay_func(){
+	if(delay_timer)return;
+	if(!delay_string)return;
+	for(var i=0;i<delay_string.length;i++)terminal.write(delay_string.charAt(i));terminal.updateView();
+	delay_string="";
+	delay_timer=setTimeout(function(){delay_timer=0;delay_func();},100);
+}
+function onBellBackgroundChangeTimer(){
+	document.body.style.background=null;
+	onBellBackgroundChangeTimer.timer=0;
+}
+function onBellBackgroundChange(){
+	if(onBellBackgroundChangeTimer.timer){
+		clearTimeout(onBellBackgroundChangeTimer.timer);
+	}
+	document.body.style.background="white";
+	onBellBackgroundChangeTimer.timer=setTimeout(onBellBackgroundChangeTimer,200);
+}
+function start(){
+	if(ws)return;
+	if(!window.WebSocket){showError();return;}
+	document.title="terminal: connecting...";
+	var path=location.pathname;
+	path=path.substr(0,path.lastIndexOf("/"));
+	ws=new WebSocket((location.protocol.substr(0,5)=="https"?"wss://":"ws://")+(location.host?location.host:"localhost")+":8888/screenx");
+	ws.onopen=function(){document.title="terminal: connected";}
+	ws.onmessage=function(e){
+		if(!terminal){
+			var wh=e.data.split("x");
+			terminal=new Terminal("terminal",parseInt(wh[0]),parseInt(wh[1]),Terminal.defaultColorList[localStorage.terminalcolor]);
+			terminal.onBell=onBellBackgroundChange;
+			document.title="terminal "+terminal.W+"x"+terminal.H+" : "+terminal.color.name;
+			return;
+		}
+		switch(e.data[0]){
+			case String.fromCharCode(0):
+				delay_string+=e.data.substring(1);delay_func();
+				break;
+			case "N":
+				viewerChanged(e.data.substring(1));
+				break;
+			case "M":
+				chatArrived(e.data.substring(1));
+				break;
+		}
+	}
+	ws.onerror=function(e){
+		ws=null;terminal=null;
+		document.title="terminal: error";
+		setTimeout(start,20*1000);
+	}
+	ws.onclose=function(e){
+		ws=null;terminal=null;
+		document.title="terminal: closed";
+		setTimeout(start,20*1000);
+	}
+}
+
+function showError(){
+	terminal=new Terminal("terminal",80,24);
+	var msg="\x1B[7m                               \x1B[1m    Terminal!    \x1B[0;7m        a websocket termcast    \x1b[m";
+	msg+="\x1B[4;16HYour Web Browser does not support \x1B[1mWebSocket\x1B[m.";
+	msg+="\x1B[8;31H(@@) (  ) (@)  ( )  @@    ()    @     O     @"
+			+"\x1B[9;26H(   )"
+			+"\x1B[10;22H(@@@@)"
+			+"\x1B[11;19H(    )"
+			+"\x1B[13;17H(@@@)"
+			+"\x1B[14;16H====        ________                ___________"
+			+"\x1B[15;12H_D _|  |_______/        \\__I_I_____===__|_________|"
+			+"\x1B[16;13H|(_)---  |   H\\________/ |   |        =|___\x1B[1mSorry!\x1B[m     ______________"
+			+"\x1B[17;13H/     |  |   H  |  |     |   |         |(o) \\o/|     _|"
+			+"\x1B[18;12H|      |  |   H  |__--------------------| [___] |   =|"
+			+"\x1B[19;12H| ________|___H__/__|_____/[][]~\\_______|       |   -|"
+			+"\x1B[20;12H|/ |   |-----------I_____I [][] []  D   |=======|____|_______________"
+			+"\x1B[21;10H__/ =| o |=-O=====O=====O=====O \\ ____Y___________|__|_________________"
+			+"\x1B[22;11H|/-=|___|=    ||    ||    ||    |_____/~\\___/          |_D__D__D_|  |_"
+			+"\x1B[23;12H\\_/      \\__/  \\__/  \\__/  \\__/      \\_/               \\_/   \\_/    \\"
+	msg+="\x1B[24;1H\x1B[40;37m(END) "
+	for(var i=0;i<msg.length;i++)terminal.write(msg.charAt(i));
+	terminal.updateView();
+}
+
+document.onkeydown=function(e){
+	var code=e.keyCode;
+	if(e.metaKey){
+		if(code==187){changeFontSize(+2);return false;}
+		if(code==189){changeFontSize(-2);return false;}
+		if(code==188){changeColor();return false;}
+	}
+	return true;
+}
+
+function changeColor(){
+	var index=parseInt(localStorage.terminalcolor);
+	index=(index?index+1:1)%Terminal.defaultColorList.length;
+	if(terminal){
+		terminal.setColor(Terminal.defaultColorList[index]);
+		document.title="terminal "+terminal.W+"x"+terminal.H+" : "+terminal.color.name;
+	}else $("terminal").style.background=Terminal.defaultColorList[index].name;
+	localStorage.terminalcolor=index;
+}
+function changeFontSize(ds,flag){
+	var t=$("terminal");
+	var s=localStorage.terminalfontsize?parseInt(localStorage.terminalfontsize):16;
+	if(flag)s=ds;else s+=ds;
+	if(s<6)s=6;if(s>40)s=40;s=Math.floor(s/2)*2;
+	$("terminal").style.fontSize=s+"px";
+	if(terminal){terminal.calcSize();terminal.updateView();}
+	localStorage.terminalfontsize=s;
+}
+function init(){
+	$("terminal").style.fontSize=(localStorage.terminalfontsize?localStorage.terminalfontsize:"16")+"px";
+	var term=new Terminal("terminal",80,24,Terminal.defaultColorList[localStorage.terminalcolor]);
+	var msg="ScreenX ";for(var i=0;i<msg.length;i++)term.write(msg.charAt(i));term.updateView();
+	start();
+}
+function viewerChanged(n){
+	$("viewer").innerHTML="viewer:"+n;
+}
+
+
+var chatUpdateTimer=null;
+function chatUpdate(){
+	var timeout=Infinity;
+	var main=$("chatMain");
+	var childs=main.childNodes;
+	if(!main.firstChild){chatUpdateTimer=null;return;}
+	var top=parseInt(main.firstChild.style.top);
+	if(top!=0){
+		var d=-Math.floor(top/4);
+		for(var i=0;i<childs.length;i++){
+			childs[i].style.top=parseInt(childs[i].style.top)+d;
+		}
+		if(top+d!=0)timeout=10;
+	}
+	if(main.lastChild)main.style.height=main.lastChild.offsetTop+main.lastChild.offsetHeight;
+	else main.style.height=0;
+	if(timeout!=Infinity)chatUpdateTimer=setTimeout(chatUpdate,timeout);
+	else chatUpdateTimer=null;
+}
+
+function chatArrived(str){
+	var div=document.createElement("nobr");
+	div.className="chatMessage";
+	div.style.color=str.substr(0,4);
+	div.textContent=str.substr(4);
+	div.ctime=new Date();
+	var main=$("chatMain");
+	if(main.childNodes.length>40)main.removeChild(main.lastChild);
+	if(main.firstChild){
+		console.log(div.style.top=parseInt(main.firstChild.style.top)-40);
+		main.insertBefore(div,main.firstChild);
+	}else{
+		div.style.top=-40;
+		main.appendChild(div);
+	}
+	if(chatUpdateTimer){
+		clearTimeout(chatUpdateTimer);
+	}
+	chatUpdate();
+	console.log(str);
+}
+function getChatColor(){
+	var c=localStorage.chatColor;
+	if(c&&c.length==4)return c;
+	c="#";
+	var col=[Math.random(),Math.random(),Math.random()];
+	var r=(1+(col[0]+col[1]+col[2])/3);
+	for(var i=0;i<3;i++)c+="0123456789abcdef".charAt(Math.floor(16*col[i]/r));
+	localStorage.chatColor=c;
+	return c;
+}
+function sendChat(){
+	var text=$("chatinput").value;
+	$("chatinput").value='';
+	if(text.match("^[ \t]*$"))return;
+	var color="#000";
+	try{color=getChatColor()}catch(e){console.log(e)}
+	ws.send(color+text);
+}
+</script>
+<style>
+body{
+	background:silver;
+	user-select:none;
+	-webkit-user-select:none;
+	-khtml-user-select:none;
+	-o-user-select:none;
+	-moz-user-select:none;
+	padding:0;
+	margin:0;
+}
+#terminal{border:2px solid gray;margin:24px 0px 30px 16px;}
+nobr.menu{
+	display:block;
+	width:100%;
+	background:#aaa;
+	position:fixed;bottom:0;
+	z-index:2
+}
+nobr.menu span{
+	text-align:center;
+	background:#999;margin:0;border:1px solid #777;cursor:pointer;
+	color:black;font-size:16px;font-weight:bold;
+	display:inline-block;
+}
+nobr.menu span:hover{background:#666;}
+nobr.menu span:active{background:#555;}
+#chat{
+	position:fixed;z-index:1;right:0;top:0;
+	width:300px;
+	height:30px;
+}
+nobr.chatMessage{
+	display:block;
+	position:absolute;
+	font-size:16px;
+	margin-top:5px;
+	border:5px solid gray;
+	width:290px;
+	border-radius:10px;
+	background:white;
+	opacity:1;
+	height:28px;
+}
+#chatMain{
+	position:absolute;
+	top:25px;
+	opacity:0.4;
+	width:300px;
+	overflow:hidden;
+}
+#chat:hover #chatMain{
+	opacity:0.8;
+}
+</style>
+<body onload="init()">
+<span id="msgbox"></span>
+<nobr class="menu">
+	<span onclick="changeColor();return false;" style='width:75px';>color</span><span onclick="changeFontSize(+2);return false;" style='width:35px'>+</span><span onclick="changeFontSize(-2);return false;" style='width:35px'>-</span>
+	<font id='viewer'></font>
+</nobr>
+<div id="chat">
+	<form onsubmit="try{sendChat()}catch(e){}return false" style='width:300px;text-align:center;padding:0;margin:0;'>
+		<input style='height:24px;font-size:16px;width:280px;z-index:4' id="chatinput" autocomplete=off placeholder='chat'></input>
+	</form>
+	<div id="chatMain"></div>
+</div>
+<div id="terminal" style="font-size:16px;"></div>
+
