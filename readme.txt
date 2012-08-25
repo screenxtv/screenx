@@ -1,13 +1,25 @@
 what's screenx?
 	terminal broadcasting system + chat
 	remote login from web
+	
+	this program uses "screen" command.
+	the screen[name="screenx"] will be broadcasted.
 
 how to use?
-build:
+-build:
 	./build.sh
-run:
+-run server:
 	cd classes
 	java ScreenX
+-terminal:
+	run the following command
+	screen -S screenx
+
+
+htmlfiles:
+	login.html:to login from web(any screenname)
+	screenx.html:broadcasting(screenname=screenx)+chat
+	sxlogin:login(screenname=screenx)+chat
 
 configuration?
 	edit classes/conf_file
@@ -24,5 +36,4 @@ security?
 	To enable web-login with safety...
 	- edit conf_file enable https
 	- set a strong password
-	- read the code, correct the code(ex: /*&&secure*/ at ScreenX.java, add an IP-check code) and do it at your own risk
-
+	- read the code, correct the code(ex: /*&&secure*/ in ScreenX.java, adding an IP-check code) and do it at your own risk
