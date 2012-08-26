@@ -8,18 +8,25 @@ import java.util.*;
 public class WebSocketServer extends Thread{
 	ServerSocket server;
 	WebSocketGenerator webSocketGenerator;
+	File documentRoot;
 	boolean secure=false;
-	public WebSocketServer(int port,WebSocketGenerator wsgen)throws Exception{server=new ServerSocket(port);this.webSocketGenerator=wsgen;}
-	public WebSocketServer(int port,Class<? extends WebSocket>wsClass)throws Exception{
+	public WebSocketServer(File root,int port,WebSocketGenerator wsgen)throws Exception{
+		this.documentRoot=root;
+		server=new ServerSocket(port);this.webSocketGenerator=wsgen;
+	}
+	public WebSocketServer(File root,int port,Class<? extends WebSocket>wsClass)throws Exception{
+		this.documentRoot=root;
 		server=new ServerSocket(port);
 		final Class<? extends WebSocket> wsc=wsClass;
 		this.webSocketGenerator=new WebSocketGenerator(){public WebSocket create(String path,boolean secure){try{return wsc.newInstance();}catch(Exception e){return null;}}};
 	}
-	public WebSocketServer(InputStream ksin,String kspass,int port,WebSocketGenerator wsgen)throws Exception{
+	public WebSocketServer(File root,int port,WebSocketGenerator wsgen,InputStream ksin,String kspass)throws Exception{
+		this.documentRoot=root;
 		this.webSocketGenerator=wsgen;
 		setServerSocket(ksin,kspass,port);
 	}
-	public WebSocketServer(InputStream ksin,String kspass,int port,Class<? extends WebSocket>wsClass)throws Exception{
+	public WebSocketServer(File root,int port,Class<? extends WebSocket>wsClass,InputStream ksin,String kspass)throws Exception{
+		this.documentRoot=root;
 		final Class<? extends WebSocket> wsc=wsClass;
 		this.webSocketGenerator=new WebSocketGenerator(){public WebSocket create(String path,boolean secure){try{return wsc.newInstance();}catch(Exception e){return null;}}};
 		setServerSocket(ksin,kspass,port);
@@ -38,7 +45,7 @@ public class WebSocketServer extends Thread{
 	public void run(){
 		try{
 			while(true){
-				new HTTPThread(webSocketGenerator,server.accept(),secure).start();
+				new HTTPThread(documentRoot,webSocketGenerator,server.accept(),secure).start();
 			}
 		}catch(Exception e){e.printStackTrace();}
 	}
@@ -51,7 +58,8 @@ class HTTPThread extends Thread{
 	int MAX_POST_LENGTH=1000000;
 	WebSocketGenerator webSocketGenerator;
 	boolean secure;
-	HTTPThread(WebSocketGenerator wsgen,Socket socket,boolean sec){webSocketGenerator=wsgen;this.socket=socket;secure=sec;}
+	File documentRoot;
+	HTTPThread(File root,WebSocketGenerator wsgen,Socket socket,boolean sec){documentRoot=root;webSocketGenerator=wsgen;this.socket=socket;secure=sec;}
 	static String readLine(InputStream in)throws Exception{
 		StringBuffer buf=new StringBuffer();
 		while(true){
@@ -90,9 +98,9 @@ class HTTPThread extends Thread{
 				}
 				String upgrade=header.get("upgrade");
 				if(upgrade==null){
-					if(method.equals("GET")){
+					if(method.equals("GET")||method.equals("POST")){
 						if(httpReply(method,path,query,header,in,out))continue;
-					}else if(method.equals("POST")){
+					}/*else if(method.equals("POST")){
 						String contentLength=header.get("content-length");
 						int len=0;
 						try{len=Integer.parseInt(contentLength);}catch(Exception e){}
@@ -101,7 +109,7 @@ class HTTPThread extends Thread{
 						in.read(data,0,len);
 						String post=new String(data);
 						if(cometReply(post,path,query,header,in,out))continue;
-					}
+						}*/
 					else System.out.println(method);
 				}else if(upgrade.toLowerCase().equals("websocket")){
 					WebSocket ws=webSocketGenerator.create(path,secure);
@@ -114,17 +122,22 @@ class HTTPThread extends Thread{
 		try{socket.close();}catch(Exception e){}
 	}
 	boolean httpReply(String method,String path,HashMap<String,String>query,HashMap<String,String>header,InputStream in,OutputStream out)throws Exception{
-		out.write("HTTP/1.0 404 NotFound\r\nContent-Length:20\r\n\r\nhogehogepiyopiyo1234".getBytes());
-		out.flush();
-		return false;
+		if(documentRoot!=null)HTTPFileManager.respond(documentRoot,path,out);
+		else{
+			String msg="No DocumentRoot on this server.";
+			out.write(("HTTP/1.0 503 OK\r\nContent-Length: "+msg.length()+"\r\n\r\n"+msg).getBytes());
+			out.close();
+			return false;
+		}
+		return true;
 	}
-	boolean cometReply(String post,String path,HashMap<String,String>query,HashMap<String,String>header,InputStream in,OutputStream out)throws Exception{
+/*	boolean cometReply(String post,String path,HashMap<String,String>query,HashMap<String,String>header,InputStream in,OutputStream out)throws Exception{
 		out.write(("HTTP/1.0 404 NotFound\r\nContent-Length:"+post.length()+"\r\n\r\n"+post.toUpperCase()).getBytes());
 //		"Keep-Alive: timeout=15,max=100\r\n";
 //		"Connection: Keep-Alive\r\n";
 		out.flush();
 		return false;
-	}
+		}*/
 	WebSocketThread websocketVersionSwitch(WebSocket ws,String path,HashMap<String,String>query,HashMap<String,String>header,InputStream in,OutputStream out)throws Exception{
 		String ver=header.get("sec-websocket-version");
 		if("13".equals(ver))
@@ -337,5 +350,59 @@ class WebSocketThread13 extends WebSocketThread{
 			}
 		}catch(Exception e){}
 		notifyClosed();
+	}
+}
+
+
+class HTTPFileManager{
+	static String group="a-zA-Z0-9_\\-";
+	static String pattern="^(/["+group+"]+["+group+"\\.]*)+$";
+	static void respond(File documentRoot,String path,OutputStream out)throws Exception{
+		if(path.equals("/"))path="/index.html";
+		if(!path.matches(pattern)){
+			out.write("HTTP/1.0 400 Bad Request\r\nContent-Length: 11\r\n\r\nBad Request".getBytes());
+			out.flush();
+			return;
+		}
+		File file=new File(documentRoot,path.substring(1));
+		if(!file.exists()){
+			out.write("HTTP/1.0 404 Not Found\r\nContent-Length: 13\r\n\r\n404 Not Found".getBytes());
+			out.flush();
+			return;
+		}
+		int length=(int)file.length();
+		String header="HTTP/1.0 200 OK\r\n";
+		header+="Content-Type: "+getContentType(path)+"\r\n";
+		header+="Content-Length: "+length+"\r\n";
+		header+="Keep-Alive: timeout=1,max=100\r\n";
+		header+="Connection: Keep-Alive\r\n";
+		out.write((header+"\r\n").getBytes());
+		byte[]buf=new byte[8*1024];
+		FileInputStream fin=new FileInputStream(file);
+		while(length>0){
+			int rb=fin.read(buf,0,buf.length<length?buf.length:length);
+			if(rb<0)throw new IOException("fileread err");
+			length-=rb;
+			out.write(buf,0,rb);
+		}
+		out.flush();
+	}
+	static HashMap<String,String>exMap=new HashMap<String,String>();
+	static{
+		String ex[][]={
+			{"txt","text/plain"},
+			{"html","text/html"},
+			{"css","text/css"},
+			{"js","text/javascript"},
+			{"jpg","image/jpeg"},
+			{"png","image/png"}
+		};
+		for(String[]kv:ex)exMap.put(kv[0],kv[1]);
+	}
+	static String getContentType(String path){
+		int dot=path.lastIndexOf(".");
+		String type=dot<0?null:exMap.get(path.substring(dot+1).toLowerCase());
+		return type!=null?type:"application/octet-stream";
+			
 	}
 }

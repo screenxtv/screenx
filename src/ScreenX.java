@@ -6,34 +6,41 @@ import java.util.*;
 public class ScreenX implements WebSocketGenerator{
 	static int DEFAULT_W,DEFAULT_H;
 	static Chat chat=new Chat();
-	public static void main(String args[])throws Exception{
-		BufferedReader br=new BufferedReader(new InputStreamReader(new FileInputStream(new File("conf_file"))));
-		int port=Integer.parseInt(br.readLine());
-		int sport=Integer.parseInt(br.readLine());
-		DEFAULT_W=TermConnector.W=Integer.parseInt(br.readLine());
-		DEFAULT_H=TermConnector.H=Integer.parseInt(br.readLine());
-		String ksfile=br.readLine();
-		String ksps=br.readLine();
-		String lgps=br.readLine();
-		SXLogin.setPassword(lgps);
-		loginEnabled=lgps.length()>6;
-		
-		WebSocketGenerator wsgen=new ScreenX();
-		if(port>0)new WebSocketServer(port,wsgen).start();
-		if(sport>0)new WebSocketServer(new FileInputStream(new File(ksfile)),ksps,sport,wsgen).start();
-	}
 	static boolean loginEnabled=false;
+	static boolean httpLoginEnabled=false;
+	public static void main(String args[])throws Exception{
+		Config config=new Config(new File("screenx.conf"));
+		int port=config.getInteger("HttpPort",-1);
+		int sport=config.getInteger("HttpsPort",-1);
+		DEFAULT_W=TermConnector.W=config.getInteger("Width",100);
+		DEFAULT_H=TermConnector.H=config.getInteger("Height",30);
+		loginEnabled=config.getBoolean("EnableLogin");
+		if(loginEnabled&&config.getBoolean("EnableHttpLogin"))httpLoginEnabled=true;
+
+		String ksfile=config.getString("KeyStoreFile");
+		String kspswd=config.getString("KeyStorePassword");
+		String loginpswd=config.getString("LoginPassword");
+		String docRootPath=config.getString("DocumentRoot");
+		File documentRoot=docRootPath==null?null:new File(docRootPath);
+		if(!documentRoot.isDirectory())documentRoot=null;
+		SXLogin.setPassword(loginpswd);
+		WebSocketGenerator wsgen=new ScreenX();
+		if(port>0)new WebSocketServer(documentRoot,port,wsgen).start();
+		if(sport>0)new WebSocketServer(documentRoot,sport,wsgen,new FileInputStream(new File(ksfile)),kspswd).start();
+	}
 	public WebSocket create(String path,boolean secure){
-		System.out.println(path+" "+secure+" "+loginEnabled);
 		if(path.indexOf("sxlogin")>=0){
-			if(loginEnabled/*&&secure*/)return new ScreenXSessionLogin();
+			if(loginEnabled&&(httpLoginEnabled||secure))return new ScreenXSessionLogin();
 			return null;
 		}
 		if(path.indexOf("login")>=0){
-			if(loginEnabled/*&&secure*/)return new SXLogin();
+			if(loginEnabled&&(httpLoginEnabled||secure))return new SXLogin();
 			return null;
 		}
-		return new ScreenXSession();
+		if(path.indexOf("screenx")>=0){
+			return new ScreenXSession();
+		}
+		return null;
 	}
 }
 
@@ -353,5 +360,29 @@ class ScreenXSessionLogin extends WebSocket implements Runnable,ChatListener{
 		System.out.println("closed");
 		mainthread.interrupt();
 		try{proc.destroy();}catch(Exception e){}
+	}
+}
+
+
+class Config{
+	HashMap<String,String>map=new HashMap<String,String>();
+	public Config(File file)throws Exception{
+		BufferedReader br=new BufferedReader(new InputStreamReader(new FileInputStream(file)));
+		String line;
+		while((line=br.readLine())!=null){
+			int index=line.indexOf(":");
+			if(index<0)continue;
+			String key=line.substring(0,index).trim().toLowerCase();
+			String value=line.substring(index+1).trim();
+			map.put(key,value);
+		}
+	}
+	String getString(String key){String val=map.get(key.toLowerCase());return val!=null?val:"";}
+	int getInteger(String key,int defaultVal){try{return Integer.parseInt(map.get(key.toLowerCase()));}catch(Exception e){return defaultVal;}}
+	boolean getBoolean(String key){
+		String val=map.get(key.toLowerCase());
+		if(val==null)return false;
+		val=val.toLowerCase();
+		return val.equals("true")||val.equals("yes")||val.equals("1");
 	}
 }
