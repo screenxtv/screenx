@@ -21,8 +21,8 @@ public class ScreenX implements WebSocketGenerator{
 		String kspswd=config.getString("KeyStorePassword");
 		String loginpswd=config.getString("LoginPassword");
 		String docRootPath=config.getString("DocumentRoot");
-		File documentRoot=docRootPath==null?null:new File(docRootPath);
-		if(!documentRoot.isDirectory())documentRoot=null;
+		File documentRoot=docRootPath.length()==0?null:new File(docRootPath);
+		if(documentRoot!=null&&!documentRoot.isDirectory())documentRoot=null;
 		SXLogin.setPassword(loginpswd);
 		WebSocketGenerator wsgen=new ScreenX();
 		if(port>0)new WebSocketServer(documentRoot,port,wsgen).start();
