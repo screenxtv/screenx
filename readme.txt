@@ -14,6 +14,8 @@ how to use?
 -terminal:
 	run the following command
 	screen -S screenx
+-web:
+	copy screenx.html and terminal.js to your webserver(ex:apache) directory
 
 
 htmlfiles:
