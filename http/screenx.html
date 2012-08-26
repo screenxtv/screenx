@@ -1,7 +1,7 @@
 <meta http-equiv='content-type' content='charset=utf-8'>
 <script src="terminal.js"></script>
+<script src="sxconfig.js"></script>
 <script>
-
 
 function $(id){return document.getElementById(id);}
 var ws=null;
@@ -30,9 +30,7 @@ function start(){
 	if(ws)return;
 	if(!window.WebSocket){showError();return;}
 	document.title="terminal: connecting...";
-	var path=location.pathname;
-	path=path.substr(0,path.lastIndexOf("/"));
-	ws=new WebSocket((location.protocol.substr(0,5)=="https"?"wss://":"ws://")+(location.host?location.host:"localhost")+":8888/screenx");
+	ws=new WebSocket(ScreenXConfig.protocol+"://"+ScreenXConfig.host+":"+ScreenXConfig.port+"/screenx");
 	ws.onopen=function(){document.title="terminal: connected";}
 	ws.onmessage=function(e){
 		if(!terminal){

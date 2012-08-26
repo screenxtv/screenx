@@ -11,31 +11,28 @@ how to use?
 -run server:
 	cd classes
 	java ScreenX
+	//nohup java ScreenX &
 -terminal:
 	run the following command
 	screen -S screenx
 -web:
-	copy screenx.html and terminal.js to your webserver(ex:apache) directory
+	open http://[hostname]:[port]/screenx.html
+	or you can copy the folder 'http' to your webserver directory.
 
-
-htmlfiles:
+htmlfiles
 	login.html:to login from web(any screenname)
 	screenx.html:broadcasting(screenname=screenx)+chat
 	sxlogin:login(screenname=screenx)+chat
 
 configuration?
-	edit classes/conf_file
-	line1:http port(disabled=-1) also edit the code "port=8888" int html/*.html
-	line2:https port(disabled=-1)
-	line3:width
-	line4:height
-	line5:keystore file(for httpsserver)
-	line6:keystore password
-	line7:login password (if pswdlen<=6 then disabled)
+	edit classes/screenx.conf and restart screenx server.
+	HttpPort,HttpsPort: you should also edit http/sxconfig.js
+	EnableLogin: login from web(only https)
+	EnableHttpLogin: login from http
+	LoginPassword: change this before you enable login. (algorithm:challangecode)
+
 
 security?
-	Unless you set the login password, it's probably safe.
-	To enable web-login with safety...
-	- edit conf_file enable https
-	- set a strong password
-	- read the code, correct the code(ex: /*&&secure*/ in ScreenX.java, adding an IP-check code) and do it at your own risk
+	Read the code.
+	If there is some problem, correct the code.
+	Do it at your own risk.

@@ -1,5 +1,6 @@
 <meta http-equiv='content-type' content='charset=utf-8'>
 <script src="terminal.js"></script>
+<script src="sxconfig.js"></script>
 <script>
 
 function hash(rnd,pss){
@@ -48,12 +49,7 @@ var screenname;
 function start(password){
 	if(ws)return;
 	document.title="terminal: connecting...";
-	var path=location.pathname;
-	path=path.substr(0,path.lastIndexOf("/"));
-	var host=location.host||"localhost";
-	var protocol="ws",port=8888;
-	if(location.protocol.indexOf("https")==0){protocol="wss";port=8889;}
-	ws=new WebSocket(protocol+"://"+host+":"+port+"/login");
+	ws=new WebSocket(LoginConfig.protocol+"://"+LoginConfig.host+":"+LoginConfig.port+"/login");
 	ws.mode=0;
 	ws.onopen=function(){document.title="terminal: connected";ws.mode=1}
 	ws.onmessage=function(e){
