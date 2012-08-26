@@ -125,7 +125,7 @@ document.onkeydown=function(e){
 	var input=$("input");input.focus();if(input.value){return true;}
 	
 	if(code>255)return false;
-	if(e.altKey){if(code!=18&&code!=229){keyFunc(0x1B);keyFunc(e.ctrlKey?code%32:code,true);}return false;}
+	if(e.altKey){if(code!=18&&code!=229){keyFunc(0x1B);keyFunc(e.ctrlKey?code%32:code==8?0x7F:code,true);}return false;}
 	if(e.ctrlKey){if(code!=17)keyFunc(code==189?31:code%32,true);return false;}
 	if(37<=code&&code<=40){keyFunc(-code,true);return false;}
 	else if(code==8){keyFunc(0x7F,true);return;}
