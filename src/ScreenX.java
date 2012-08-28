@@ -28,14 +28,21 @@ public class ScreenX implements WebSocketGenerator{
 		if(port>0)new WebSocketServer(documentRoot,port,wsgen).start();
 		if(sport>0)new WebSocketServer(documentRoot,sport,wsgen,new FileInputStream(new File(ksfile)),kspswd).start();
 	}
+	class MessageWebSocket extends WebSocket{
+		String msg;
+		MessageWebSocket(String msg){this.msg=msg;}
+		public void onopen(){send(msg);new Thread(){public void run(){try{Thread.sleep(1000);}catch(Exception e){}close();}};}
+		public void onmessage(String msg){}
+		public void onclose(){}
+	}
 	public WebSocket create(String path,boolean secure){
 		if(path.indexOf("sxlogin")>=0){
 			if(loginEnabled&&(httpLoginEnabled||secure))return new ScreenXSessionLogin();
-			return null;
+			return new MessageWebSocket("NG"+"login disabled");
 		}
 		if(path.indexOf("login")>=0){
 			if(loginEnabled&&(httpLoginEnabled||secure))return new SXLogin();
-			return null;
+			return new MessageWebSocket("NG"+"login disabled");
 		}
 		if(path.indexOf("screenx")>=0){
 			return new ScreenXSession();
