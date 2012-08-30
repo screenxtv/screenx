@@ -1,6 +1,7 @@
 <meta http-equiv='content-type' content='charset=utf-8'>
 <script src="terminal.js"></script>
 <script src="sxconfig.js"></script>
+<script src="comet.js"></script>
 <script>
 
 function $(id){return document.getElementById(id);}
@@ -28,9 +29,9 @@ function onBellBackgroundChange(){
 }
 function start(){
 	if(ws)return;
-	if(!window.WebSocket){showError();return;}
 	document.title="terminal: connecting...";
-	ws=new WebSocket(ScreenXConfig.protocol+"://"+ScreenXConfig.host+":"+ScreenXConfig.port+"/screenx");
+//	ws=new WebSocket(ScreenXConfig.protocol+"://"+ScreenXConfig.host+":"+ScreenXConfig.port+"/screenx");
+	ws=new Comet("http://"+ScreenXConfig.host+":"+ScreenXConfig.port+"/screenx");
 	ws.onopen=function(){document.title="terminal: connected";}
 	ws.onmessage=function(e){
 		if(!terminal){

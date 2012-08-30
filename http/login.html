@@ -1,6 +1,7 @@
 <meta http-equiv='content-type' content='charset=utf-8'>
 <script src="terminal.js"></script>
 <script src="sxconfig.js"></script>
+<script src="comet.js"></script>
 <script>
 
 function hash(rnd,pss){
@@ -49,7 +50,8 @@ var screenname;
 function start(password){
 	if(ws)return;
 	document.title="terminal: connecting...";
-	ws=new WebSocket(LoginConfig.protocol+"://"+LoginConfig.host+":"+LoginConfig.port+"/login");
+	//ws=new WebSocket(LoginConfig.protocol+"://"+LoginConfig.host+":"+LoginConfig.port+"/login");
+	ws=new Comet("http://"+ScreenXConfig.host+":"+ScreenXConfig.port+"/login");
 	ws.mode=0;
 	ws.onopen=function(){document.title="terminal: connected";ws.mode=1}
 	ws.onmessage=function(e){

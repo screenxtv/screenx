@@ -98,18 +98,27 @@ class HTTPThread extends Thread{
 				}
 				String upgrade=header.get("upgrade");
 				if(upgrade==null){
-					if(method.equals("GET")||method.equals("POST")){
+					if(method.equals("GET")){
 						if(httpReply(method,path,query,header,in,out))continue;
-					}/*else if(method.equals("POST")){
-						String contentLength=header.get("content-length");
-						int len=0;
-						try{len=Integer.parseInt(contentLength);}catch(Exception e){}
-						if(len==0||len>MAX_POST_LENGTH)break;
-						byte[]data=new byte[Integer.parseInt(contentLength)];
-						in.read(data,0,len);
-						String post=new String(data);
-						if(cometReply(post,path,query,header,in,out))continue;
-						}*/
+					}else if(method.equals("POST")){
+						try{
+							String contentLength=header.get("content-length");
+							int len=0;
+							try{len=Integer.parseInt(contentLength);}catch(Exception e){}
+							if(len==0||len>MAX_POST_LENGTH)break;
+							byte[]data=new byte[Integer.parseInt(contentLength)];
+							in.read(data,0,len);
+							String post=new String(data);
+							System.out.println(path+"#"+post);
+							byte odata[]=CometWSThread.cometAction(webSocketGenerator,path,secure,post).getBytes("UTF-8");
+							String oheader="HTTP/1.0 200 OK\r\n";
+							oheader+="Content-Length: "+odata.length+"\r\n";
+							out.write((oheader+"\r\n").getBytes());
+							out.write(odata);
+							out.flush();
+						}catch(Exception e){e.printStackTrace();}
+						continue;
+					}
 					else System.out.println(method);
 				}else if(upgrade.toLowerCase().equals("websocket")){
 					WebSocket ws=webSocketGenerator.create(path,secure);
@@ -172,6 +181,7 @@ abstract class WebSocketThread implements Runnable{
 		}
 	}
 	abstract void handshake(String path,HashMap<String,String>header)throws Exception;
+	WebSocketThread(){}
 	WebSocketThread(WebSocket ws,String path,HashMap<String,String>query,HashMap<String,String>header,InputStream in,OutputStream out)throws Exception{
 		this.in=in;this.out=out;
 		handshake(path,header);
@@ -196,8 +206,8 @@ class Digest{
 		try{digest_md5=MessageDigest.getInstance("MD5");}catch(Exception e){}
 		try{digest_sha1=MessageDigest.getInstance("SHA1");}catch(Exception e){}
 	}
-	static byte[]md5(byte[]b){return digest_md5.digest(b);}
-	static byte[]sha1(byte[]b){return digest_sha1.digest(b);}
+	static byte[]md5(byte[]b){synchronized(digest_md5){return digest_md5.digest(b);}}
+	static byte[]sha1(byte[]b){synchronized(digest_sha1){return digest_sha1.digest(b);}}
 }
 
 class WebSocketThreadKV12 extends WebSocketThread{
