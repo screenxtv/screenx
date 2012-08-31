@@ -1,9 +1,19 @@
 package websocket;
 import java.io.*;
 import java.util.*;
-
+import java.net.*;
 
 class CometWSThread extends WebSocketThread{
+	static class CometID{
+		String id;
+		InetAddress addr;
+		CometID(String id,InetAddress addr){this.id=id;this.addr=addr;}
+		public int hashCode(){return id.hashCode()+addr.hashCode();}
+		public boolean equals(Object o){
+			CometID c=(CometID)o;
+			return id.equals(c.id)&&addr.equals(c.addr);
+		}
+	}
 	static int serialNum=0;
 	static final byte[]alphanumeric="0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz".getBytes();
 	static String serialID(int a,int b){
@@ -20,25 +30,26 @@ class CometWSThread extends WebSocketThread{
 		for(int i=0;i<8;i++)b[8-i-1]=hex16[(n>>(4*i))&0xf];
 		return new String(b);
 	}
-	static HashMap<String,CometWSThread>cometMap=new HashMap<String,CometWSThread>();
+	static HashMap<CometID,CometWSThread>cometMap=new HashMap<CometID,CometWSThread>();
 	
-	static CometWSThread createComet(WebSocket ws,String path,HashMap<String,String>query){
+	static CometWSThread createComet(WebSocket ws,String path,HashMap<String,String>query,InetAddress addr){
 		CometWSThread wst=new CometWSThread(ws,path,null);
 		String id=serialID(8,8);
-		wst.setID(id);
+		CometID cid=new CometID(id,addr);
+		wst.setID(cid);
 		synchronized(cometMap){
-			cometMap.put(id,wst);
+			cometMap.put(cid,wst);
 		}
 		return wst;
 	}
-	static CometWSThread getComet(String id){
-		synchronized(cometMap){return cometMap.get(id);}
+	static CometWSThread getComet(CometID cid){
+		synchronized(cometMap){return cometMap.get(cid);}
 	}
-	static final int TIMEOUT=15000,CLOSETIMEOUT=5000;	
+	static final int TIMEOUT=15000,CLOSETIMEOUT=5000;
 
-	String id;
+	CometID cid;
 	boolean alive=true;
-	void setID(String id){this.id=id;}
+	void setID(CometID cid){this.cid=cid;}
 	WebSocket ws;
 	CometWSThread(WebSocket ws,String path,HashMap<String,String>query){
 		websocket=ws;
@@ -55,6 +66,7 @@ class CometWSThread extends WebSocketThread{
 	void notifyTimeout(int t){synchronized(mode){mode[0]++;mode[1]=t;mode.notify();}}
 
 	public void run(){
+		setTimeout();
 		try{
 			while(true){
 				synchronized(mode){
@@ -66,11 +78,9 @@ class CometWSThread extends WebSocketThread{
 				}
 			}
 		}catch(Exception e){}
-		System.out.println("TIMEOUT_CLOSE");
 		notifyClosed();
 	}
 	public void notifyClosed(){
-		System.out.println("NOTIF_CLOS");
 		boolean rmv=false;
 		synchronized(sendQueue){
 			if(alive){
@@ -82,7 +92,8 @@ class CometWSThread extends WebSocketThread{
 		}
 		if(rmv){
 			synchronized(cometMap){
-				cometMap.remove(id);
+				cometMap.remove(cid);
+				websocket.onclose();
 			}
 		}
 	}
@@ -102,16 +113,17 @@ class CometWSThread extends WebSocketThread{
 		return buf.toString();
 	}
 	
-	public static String cometAction(WebSocketGenerator wsgen,String path,boolean secure,String post){
+	public static String cometAction(WebSocketGenerator wsgen,String path,boolean secure,String post,InetAddress addr){
 		char type=post.charAt(0);
 		if(type=='+'){
-			CometWSThread comet=createComet(wsgen.create(path,secure),path,new HashMap<String,String>());
-			System.out.println("NEW COMET"+comet.id);
-			return comet.id;
+			CometWSThread comet=createComet(wsgen.create(path,secure,false),path,new HashMap<String,String>(),addr);
+			System.out.println("NEW COMET"+comet.cid.id+" "+addr+" "+comet.cid.hashCode());
+			System.out.println(new CometID(comet.cid.id,addr).equals(new CometID(comet.cid.id+"",addr))+"EQTEST");
+			return comet.cid.id;
 		}
 		String id=post.substring(1,1+16);
-		CometWSThread comet=getComet(id);
-		if(comet==null){System.out.println("NOCOMET"+id);}
+		CometWSThread comet=getComet(new CometID(id,addr));
+		if(comet==null){System.out.println("NOCOMET"+id+" "+addr+" "+new CometID(id,addr).hashCode());}
 		if(comet==null)return "ffffffff";
 		switch(type){
 		case '>':{

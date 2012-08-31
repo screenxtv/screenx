@@ -8,6 +8,7 @@ public class ScreenX implements WebSocketGenerator{
 	static Chat chat=new Chat();
 	static boolean loginEnabled=false;
 	static boolean httpLoginEnabled=false;
+	static boolean cometLoginEnabled=false;
 	public static void main(String args[])throws Exception{
 		Config config=new Config(new File("screenx.conf"));
 		int port=config.getInteger("HttpPort",-1);
@@ -16,6 +17,7 @@ public class ScreenX implements WebSocketGenerator{
 		DEFAULT_H=TermConnector.H=config.getInteger("Height",30);
 		loginEnabled=config.getBoolean("EnableLogin");
 		if(loginEnabled&&config.getBoolean("EnableHttpLogin"))httpLoginEnabled=true;
+		if(loginEnabled&&config.getBoolean("EnableCometLogin"))cometLoginEnabled=true;
 
 		String ksfile=config.getString("KeyStoreFile");
 		String kspswd=config.getString("KeyStorePassword");
@@ -35,13 +37,13 @@ public class ScreenX implements WebSocketGenerator{
 		public void onmessage(String msg){}
 		public void onclose(){}
 	}
-	public WebSocket create(String path,boolean secure){
+	public WebSocket create(String path,boolean isSecure,boolean isSocket){
 		if(path.indexOf("sxlogin")>=0){
-			if(loginEnabled&&(httpLoginEnabled||secure))return new ScreenXSessionLogin();
+			if(loginEnabled&&(httpLoginEnabled||isSecure)&&(cometLoginEnabled||isSocket))return new ScreenXSessionLogin();
 			return new MessageWebSocket("NG"+"login disabled");
 		}
 		if(path.indexOf("login")>=0){
-			if(loginEnabled&&(httpLoginEnabled||secure))return new SXLogin();
+			if(loginEnabled&&(httpLoginEnabled||isSecure)&&(cometLoginEnabled||isSocket))return new SXLogin();
 			return new MessageWebSocket("NG"+"login disabled");
 		}
 		if(path.indexOf("screenx")>=0){

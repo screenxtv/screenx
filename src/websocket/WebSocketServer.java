@@ -18,7 +18,7 @@ public class WebSocketServer extends Thread{
 		this.documentRoot=root;
 		server=new ServerSocket(port);
 		final Class<? extends WebSocket> wsc=wsClass;
-		this.webSocketGenerator=new WebSocketGenerator(){public WebSocket create(String path,boolean secure){try{return wsc.newInstance();}catch(Exception e){return null;}}};
+		this.webSocketGenerator=new WebSocketGenerator(){public WebSocket create(String path,boolean isSecure,boolean isSocket){try{return wsc.newInstance();}catch(Exception e){return null;}}};
 	}
 	public WebSocketServer(File root,int port,WebSocketGenerator wsgen,InputStream ksin,String kspass)throws Exception{
 		this.documentRoot=root;
@@ -28,7 +28,7 @@ public class WebSocketServer extends Thread{
 	public WebSocketServer(File root,int port,Class<? extends WebSocket>wsClass,InputStream ksin,String kspass)throws Exception{
 		this.documentRoot=root;
 		final Class<? extends WebSocket> wsc=wsClass;
-		this.webSocketGenerator=new WebSocketGenerator(){public WebSocket create(String path,boolean secure){try{return wsc.newInstance();}catch(Exception e){return null;}}};
+		this.webSocketGenerator=new WebSocketGenerator(){public WebSocket create(String path,boolean isSecure,boolean isSocket){try{return wsc.newInstance();}catch(Exception e){return null;}}};
 		setServerSocket(ksin,kspass,port);
 	}
 	void setServerSocket(InputStream ksin,String kspass,int port)throws Exception{
@@ -109,8 +109,8 @@ class HTTPThread extends Thread{
 							byte[]data=new byte[Integer.parseInt(contentLength)];
 							in.read(data,0,len);
 							String post=new String(data);
-							System.out.println(path+"#"+post);
-							byte odata[]=CometWSThread.cometAction(webSocketGenerator,path,secure,post).getBytes("UTF-8");
+							//System.out.println(path+"#"+post);
+							byte odata[]=CometWSThread.cometAction(webSocketGenerator,path,secure,post,socket.getInetAddress()).getBytes("UTF-8");
 							String oheader="HTTP/1.0 200 OK\r\n";
 							oheader+="Content-Length: "+odata.length+"\r\n";
 							out.write((oheader+"\r\n").getBytes());
@@ -121,7 +121,7 @@ class HTTPThread extends Thread{
 					}
 					else System.out.println(method);
 				}else if(upgrade.toLowerCase().equals("websocket")){
-					WebSocket ws=webSocketGenerator.create(path,secure);
+					WebSocket ws=webSocketGenerator.create(path,secure,true);
 					if(ws==null){out.write("HTTP/1.0 404 NotFound\r\n\r\n".getBytes());out.flush();break;}
 					websocketVersionSwitch(ws,path,query,header,in,out).start();
 				}

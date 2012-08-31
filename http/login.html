@@ -50,8 +50,10 @@ var screenname;
 function start(password){
 	if(ws)return;
 	document.title="terminal: connecting...";
-	//ws=new WebSocket(LoginConfig.protocol+"://"+LoginConfig.host+":"+LoginConfig.port+"/login");
-	ws=new Comet("http://"+ScreenXConfig.host+":"+ScreenXConfig.port+"/login");
+	if(window.WebSocket&&!ScreenXConfig.forceComet)
+		ws=new WebSocket((ScreenXConfig.https?"wss":"ws")+"://"+ScreenXConfig.host+":"+ScreenXConfig.port+"/login");
+	else
+		ws=new Comet((ScreenXConfig.https?"https":"http")+"://"+ScreenXConfig.host+":"+ScreenXConfig.port+"/login");
 	ws.mode=0;
 	ws.onopen=function(){document.title="terminal: connected";ws.mode=1}
 	ws.onmessage=function(e){

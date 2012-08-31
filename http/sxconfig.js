@@ -1,10 +1,12 @@
 var ScreenXConfig={
-	protocol:"ws",
+	https:false,
 	host:location.hostname||"localhost",
-	port:8080
+	port:8080,
+	forceComet:true
 }
 var LoginConfig={
-	protocol:"ws",
+	https:false,
 	host:location.hostname||"localhost",
-	port:8080
+	port:8080,
+	forceComet:true
 }

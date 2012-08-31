@@ -30,8 +30,10 @@ function onBellBackgroundChange(){
 function start(){
 	if(ws)return;
 	document.title="terminal: connecting...";
-//	ws=new WebSocket(ScreenXConfig.protocol+"://"+ScreenXConfig.host+":"+ScreenXConfig.port+"/screenx");
-	ws=new Comet("http://"+ScreenXConfig.host+":"+ScreenXConfig.port+"/screenx");
+	if(window.WebSocket&&!ScreenXConfig.forceComet)
+		ws=new WebSocket((ScreenXConfig.https?"wss":"ws")+"://"+ScreenXConfig.host+":"+ScreenXConfig.port+"/screenx");
+	else
+		ws=new Comet((ScreenXConfig.https?"https":"http")+"://"+ScreenXConfig.host+":"+ScreenXConfig.port+"/screenx");
 	ws.onopen=function(){document.title="terminal: connected";}
 	ws.onmessage=function(e){
 		if(!terminal){

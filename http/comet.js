@@ -26,7 +26,6 @@ function Comet(url){
 		http.send("<"+comet.id);
 		http.onreadystatechange=function(){
 			if(http.readyState!=4)return;
-			console.log(http.status+" "+http.responseText);
 			if(http.status!=200){comet.close();return;}
 			var str=http.responseText;
 			var index=0;
