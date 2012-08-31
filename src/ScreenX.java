@@ -13,8 +13,8 @@ public class ScreenX implements WebSocketGenerator{
 		Config config=new Config(new File("screenx.conf"));
 		int port=config.getInteger("HttpPort",-1);
 		int sport=config.getInteger("HttpsPort",-1);
-		DEFAULT_W=TermConnector.W=config.getInteger("Width",100);
-		DEFAULT_H=TermConnector.H=config.getInteger("Height",30);
+		DEFAULT_W=TerminalExecThread.W=config.getInteger("Width",100);
+		DEFAULT_H=TerminalExecThread.H=config.getInteger("Height",30);
 		loginEnabled=config.getBoolean("EnableLogin");
 		if(loginEnabled&&config.getBoolean("EnableHttpLogin"))httpLoginEnabled=true;
 		if(loginEnabled&&config.getBoolean("EnableCometLogin"))cometLoginEnabled=true;
@@ -27,6 +27,9 @@ public class ScreenX implements WebSocketGenerator{
 		if(documentRoot!=null&&!documentRoot.isDirectory())documentRoot=null;
 		SXLogin.setPassword(loginpswd);
 		WebSocketGenerator wsgen=new ScreenX();
+		
+		(ScreenXSession.terminalThread=new TerminalExecThread()).start();
+		
 		if(port>0)new WebSocketServer(documentRoot,port,wsgen).start();
 		if(sport>0)new WebSocketServer(documentRoot,sport,wsgen,new FileInputStream(new File(ksfile)),kspswd).start();
 	}
@@ -54,83 +57,33 @@ public class ScreenX implements WebSocketGenerator{
 }
 
 
-
-class TermConnector implements Runnable{
+class TerminalExecThread extends Thread{
 	static int W,H;
 	public Terminal terminal;
-	Thread thread=null;
-	public TermConnector(){
-		thread=new Thread(this);
-		thread.start();
-	}
-	Timer timer=new Timer();
-	Task task=null;
-	class Task extends TimerTask{
-		TermConnector self;
-		Task(TermConnector t){self=t;}
-		public void run(){
-			synchronized(self){
-				if(task==this){try{in.close();in=null;task=null;}catch(Exception e){}}
-			}
-		}
-	}
-	public synchronized Terminal tryConnect(){
-		if(task!=null){task.cancel();task=null;}
-		count++;
-		System.out.println(count);
-		System.out.println("a");
-		if(terminal==null){notify();try{wait();}catch(Exception e){}}
-		System.out.println("b"+terminal);
-		return terminal;
-	}
-	int count=0;
-	public synchronized void tryClose(){
-		count--;
-		System.out.println(count);
-		if(count==0){
-			timer.schedule(task=new Task(this),5000);
-		}
-	}
-	InputStream in=null;
 	public void run(){
-		try{
 		while(true){
-			synchronized(this){
-				System.out.println("waiting");
-				if(count==0)try{wait();}catch(Exception e){}
-				System.out.println("start");
-			}
+			System.out.println("loop");
+			InputStream in=null;OutputStream out=null;
 			Process proc=null;
-			InputStream in=null;
-			OutputStream out=null;
-			Terminal terminal=null;
 			try{
 				String env[]={"TERM=vt100","LANG=ja_JP.UTF-8"};
+			System.out.println("exec");
 				proc=Runtime.getRuntime().exec("./screenxfork "+W+" "+H,env);
 				in=proc.getInputStream();
 				out=proc.getOutputStream();
+			System.out.println("newterm");
 				terminal=new Terminal(W,H,in=proc.getInputStream());
-			}catch(Exception e){System.out.println(e.toString());e.printStackTrace();}
-			synchronized(this){
-				this.in=in;
-				this.terminal=terminal;
-				notifyAll();
-			}
-			try{
-				System.out.println("main");
+			System.out.println("main");
 				terminal.main();
-				System.out.println("end");
-			}catch(Exception e){System.out.println(e.toString());e.printStackTrace();}
-			synchronized(this){
-				this.terminal=null;
-				try{in.close();}catch(Exception e){}
-				try{out.close();}catch(Exception e){}
-				System.out.println("destroying");
-				try{proc.waitFor();}catch(Exception e){}
-				System.out.println("destroy");
-			}
+			System.out.println("emd");
+			}catch(Exception e){e.printStackTrace();}
+			terminal=null;
+			try{if(in!=null)in.close();}catch(Exception e){}
+			try{if(out!=null)out.close();}catch(Exception e){}
+			System.out.println("destroying");
+			try{if(proc!=null)proc.waitFor();}catch(Exception e){}
+			try{Thread.sleep(10*1000);}catch(Exception e){}
 		}
-		}catch(Exception e){e.printStackTrace();}
 	}
 }
 
@@ -159,17 +112,17 @@ class Chat{
 }
 
 class ScreenXSession extends WebSocket implements Runnable,ChatListener{
-	static TermConnector tc=new TermConnector();
+	static TerminalExecThread terminalThread;
 	Terminal terminal;
 	Thread thread;
 	public void onopen(){
-		terminal=tc.tryConnect();
+		terminal=terminalThread.terminal;
+		if(terminal==null)close();
 		(thread=new Thread(this)).start();
 	}
 	boolean added=false;
 	public void run(){
 		try{
-			System.out.println("sendsize");
 			send(terminal.getWidth()+"x"+terminal.getHeight());
 		}catch(Exception e){}
 		ScreenX.chat.addListener(this);
@@ -192,8 +145,9 @@ class ScreenXSession extends WebSocket implements Runnable,ChatListener{
 		ScreenX.chat.addMessage(msg);
 	}
 	public void onclose(){
+		loop=false;
 		thread.interrupt();
-		System.out.println("onclose");loop=false;tc.tryClose();
+		System.out.println("onclose");
 	}
 }
 
