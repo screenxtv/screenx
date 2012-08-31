@@ -73,7 +73,9 @@ class HTTPThread extends Thread{
 		try{
 			InputStream in=new BufferedInputStream(socket.getInputStream());
 			OutputStream out=new BufferedOutputStream(socket.getOutputStream());
+			System.out.println("RESET");
 			while(true){
+				socket.setSoTimeout(5000+1000);
 				String request[]=readLine(in).split(" ");
 				if(request.length!=3)break;
 				String method=request[0],path=request[1],httpVer=request[2];
@@ -96,6 +98,7 @@ class HTTPThread extends Thread{
 					String value=kv.substring(colon+(colon+1<kv.length()&&kv.charAt(colon+1)==' '?2:1));
 					header.put(key.toLowerCase(),value);
 				}
+				socket.setSoTimeout(0);
 				String upgrade=header.get("upgrade");
 				if(upgrade==null){
 					if(method.equals("GET")){
@@ -112,17 +115,39 @@ class HTTPThread extends Thread{
 							//System.out.println(path+"#"+post);
 							byte odata[]=CometWSThread.cometAction(webSocketGenerator,path,secure,post,socket.getInetAddress()).getBytes("UTF-8");
 							String oheader="HTTP/1.0 200 OK\r\n";
+							oheader+="Connection: Keep-Alive\r\n";
+							oheader+="Access-Control-Allow-Origin: *\r\n";
+							oheader+="Keep-Alive: timeout=5\r\n";
 							oheader+="Content-Length: "+odata.length+"\r\n";
 							out.write((oheader+"\r\n").getBytes());
 							out.write(odata);
 							out.flush();
 						}catch(Exception e){e.printStackTrace();}
 						continue;
+					}else if(method.equals("OPTIONS")){
+						System.out.println("OPTIONS "+path);
+						for(Map.Entry<String,String> str:header.entrySet()){
+							System.out.println(str.getKey()+" "+str.getValue());
+						}
+						String res="HTTP/1.0 200 OK\r\n";
+						String origin=header.get("origin");
+						res+="Access-Control-Allow-Origin: "+(origin==null?"*":origin)+"\r\n";
+						res+="Access-Control-Allow-Methods: POST, GET, OPTIONS\r\n";
+						String reqhead=header.get("access-control-request-headers");
+						if(reqhead!=null)res+="Access-Control-Allow-Headers: "+reqhead+"\r\n";
+						res+="Access-Control-Max-Age: 1728000\r\n";
+						res+="Keep-Alive: timeout=5\r\n";
+						res+="Connection: Keep-Alive\r\n";
+						res+="Content-Length: 0\r\n";
+						out.write((res+"\r\n").getBytes());out.flush();
+					}else{
+						System.out.println(method);
+						out.write("HTTP/1.0 404 NotFound\r\nContent-Length: 0\r\n\r\n".getBytes());
+						out.flush();
 					}
-					else System.out.println(method);
 				}else if(upgrade.toLowerCase().equals("websocket")){
 					WebSocket ws=webSocketGenerator.create(path,secure,true);
-					if(ws==null){out.write("HTTP/1.0 404 NotFound\r\n\r\n".getBytes());out.flush();break;}
+					if(ws==null){out.write("HTTP/1.0 404 NotFound\r\nContent-Length: 0\r\n\r\n".getBytes());out.flush();break;}
 					websocketVersionSwitch(ws,path,query,header,in,out).start();
 				}
 				break;
