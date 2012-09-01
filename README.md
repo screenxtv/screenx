@@ -74,7 +74,7 @@ Of course you can use ScreenX in any other situations not listed above :-)
 
 ## System Architecture
 
-![ScreenX architecture](http://hensatibu.moe.hm/~tomoya/architecture.png)
+![ScreenX architecture](http://cdn-ak.f.st-hatena.com/images/fotolife/t/tompng/20120901/20120901160226.png)
 
 
 ## About security
