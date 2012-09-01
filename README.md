@@ -87,4 +87,6 @@ If you use this system on not such servers, we recommend to read the code before
 
 If you find any problem on ScreenX, we're very welcome to correct the code. Please send us your pull requests.
 
-	
+## License
+
+ScreenX is distributed under MIT License. See `LICENSE` for details.
