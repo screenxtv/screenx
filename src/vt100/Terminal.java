@@ -173,6 +173,7 @@ public class Terminal{
 	}
 	void parseSpecial(int c){
 		switch(c){
+			case 0x09:moveCursor((cursorX/8+1)*8,cursorY);return;
 			case 0x08:moveCursor(cursorX-1,cursorY);return;
 			case 0x0A:scrollCursor(cursorX,cursorY+1);return;
 			case 0x0D:moveCursor(0,cursorY);return;

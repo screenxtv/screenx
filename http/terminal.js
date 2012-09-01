@@ -38,6 +38,7 @@ VT100.prototype.write=function(c){
 }
 VT100.prototype.parseSpecial=function(c){
 	switch(c){
+		case 0x09:this.moveCursor(Math.floor(this.cursorX/8+1)*8,this.cursorY);return;
 		case 0x08:this.moveCursor(this.cursorX-1,this.cursorY);return;
 		case 0x0A:this.scrollCursor(this.cursorX,this.cursorY+1);return;
 		case 0x0D:this.moveCursor(0,this.cursorY);return;
