@@ -4,7 +4,7 @@
 
 ![Screenshot of ScreenX](https://dl.dropbox.com/u/2819285/screenx-ss.png)
 
-## Requiment
+## Requirements
 - `screen` command (`sudo aptitude install screen` for Unix-like system user)
   
   A screen named "screenx" will be broadcasted. (ex. `screen -x screenx`).
