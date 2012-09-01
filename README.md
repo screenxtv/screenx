@@ -9,7 +9,7 @@
   
   A screen named "screenx" will be broadcasted. (ex. `screen -x screenx`).
 
-- `java` and `javac` commands to build
+- `java` and `javac` commands to build and run
 
 - `g++` command to build
 
@@ -17,7 +17,7 @@
 
 ## How to use
 
-1. download latest ScreenX:
+1. download source code of ScreenX:
    
    `git clone https://github.com/tompng/screenx.git`.
 
@@ -25,13 +25,13 @@
 
    `cd screenx`
    
-   `./build.sh` (Make sure you can use `javac` and `g++`)
+   `./build.sh` (make sure you can use `javac` and `g++`)
    
 3. run Java server:
 
    `cd classes`
    
-   `java ScreenX` (Make sure you can use `java`)
+   `java ScreenX` (make sure you can use `java`)
 
        NOTE: if you'd like to run ScreenX in background, use `nohup java ScreenX &` instead.
       
@@ -41,7 +41,7 @@
 
 5. create symbolic links of `html/*` to, for example, `/var/www/`:
 
-   e.g. `sudo ln -s html/* /var/www/` on `zsh`
+   e.g. `sudo ln -s html/* /var/www/` on Zsh
 
 6. open `http://[hostname]:[port]/screenx.html` with your web browser.
 
@@ -70,6 +70,8 @@ Maybe you can use this sytem for the following scenes:
 2. Remote Pair-programming
 3. Real-time Hackathon
 
+Of course you can use ScreenX in any other situations not listed above :-)
+
 ## System Architecture
 
 ![ScreenX architecture](http://hensatibu.moe.hm/~tomoya/architecture.png)
@@ -77,12 +79,12 @@ Maybe you can use this sytem for the following scenes:
 
 ## About security
 
-__It's true that this system creates some kind of security holes.__ So, we strongly recommend to run this system on your sandbox-like server, a server that doesn't have any secret information and no problems whenever down. For example, using [RackHub](http://rackhub.net) and [this 1 line setup gist](https://gist.github.com/3547668), you can easily setup and initialize server with very low cost.
+__It's true that ScreenX creates some kind of security holes.__ So, we strongly recommend to run this system on your sandbox-like server first, a server that doesn't have any secret information and no problems whenever down. For example, using [RackHub](http://rackhub.net) and [this 1 line setup gist](https://gist.github.com/3547668), you can easily setup and initialize server with very low cost.
 
-If you use this system on not such servers, we recommend to read the code before running ScreenX in order to understand how dangerous it is. And do it at your own risk.
+If you use this system on not such servers, we recommend to read the code before running ScreenX in order to understand how dangerous it is. And please do it at your own risk.
 
 ## Contact
 
-If there is some problem on ScreenX, we're very welcome to correct the code. Please send us your pull requests.
+If you find any problem on ScreenX, we're very welcome to correct the code. Please send us your pull requests.
 
 	
