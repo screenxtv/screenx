@@ -1,8 +1,6 @@
 # What's screenx?
 
-### ScreenX is a real-time terminal broadcasting system.
-
-ScreenX enables you to broadcast your screen and to control your terminal from web browser.
+### ScreenX is a real-time terminal broadcasting system. It enables you to broadcast your screen and control it from web browser.
 
 ![Screenshot of ScreenX](https://dl.dropbox.com/u/2819285/screenx-ss.png)
 
