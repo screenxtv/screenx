@@ -10,23 +10,15 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <errno.h>
+#if defined(__GLIBC__)
+#include <pty.h>
+#elif defined(__FreeBSD__)||defined(__FreeBSD_kernel__)||defined(__DragonFly__)
+#include <libutil.h>
+#else
+#include <util.h>
+#endif
 
-int forkpty(int*master,int*slave,termios*t,winsize*w){
-	int m,s;
-	m=posix_openpt(O_RDWR);grantpt(m);unlockpt(m);
-	s=open(ptsname(m),O_RDWR);
-	*master=m;*slave=s;
-	if(w)ioctl(s,TIOCSWINSZ,w);
-	if(t)tcsetattr(s,TCSAFLUSH,t);
-	int f=fork();if(f){return f;}
-	setsid();
-	fclose(stdin);fclose(stdout);
-	dup2(s,STDIN_FILENO);
-	dup2(s,STDOUT_FILENO);
-	dup2(s,STDERR_FILENO);
-	return f;
-}
-int fd,slave,pid;
+int fd,pid;
 void chldfunc(int n){wait(NULL);exit(0);}
 void* thread_read(void*v){
 	char buf[1024];int rd;
@@ -50,7 +42,7 @@ void loop(){
 						int w=0,h=0;
 						for(int i=0;;i++){c=getc(stdin);if(c=='x')break;if(c<'0'||c>'9'||i>3)return;w=w*10+(c-'0');}
 						for(int i=0;;i++){c=getc(stdin);if(c==';')break;if(c<'0'||c>'9'||i>3)return;h=h*10+(c-'0');}
-						win.ws_col=w;win.ws_row=h;ioctl(slave,TIOCSWINSZ,&win);
+						win.ws_col=w;win.ws_row=h;ioctl(fd,TIOCSWINSZ,&win);
 					}break;
 				default:break;
 			}
@@ -60,9 +52,8 @@ void loop(){
 int main(int argc, char *argv[]){
 	win.ws_col=atoi(argv[1]);win.ws_row=atoi(argv[2]);
 	signal(SIGCHLD,chldfunc);
-	if(!(pid=forkpty(&fd,&slave,NULL,&win))){execlp("screen","screen","-x",argc>=4?argv[3]:"screenx","-R",NULL);}
-	
-	
+	if(!(pid=forkpty(&fd,NULL,NULL,&win))){execlp("screen","screen","-x",argc>=4?argv[3]:"screenx","-R",NULL);}
+//	if(!(pid=forkpty(&fd,NULL,NULL,&win))){execlp("login","login",NULL);}
 	int flag=fcntl(fd,F_GETFL,0);
 	fcntl(fd,F_SETFL,O_NONBLOCK);
 	for(int i=0;;i++){

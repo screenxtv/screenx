@@ -2,7 +2,7 @@ function VT100(w,h){
 	this.W=w;this.H=h;
 	this.line=[];
 	this.linetmp=[];
-	for(var i=0;i<this.H;i++)this.line[i]=new VT100.Line(this.W);
+	for(var i=0;i<this.H;i++)this.line[i]=new VT100.Line();
 	this.font=this.fontDefault=0x00088;
 	this.scrollStart=0;this.scrollEnd=this.H-1;
 	this.cursorX=0;this.cursorY=0;
@@ -10,31 +10,52 @@ function VT100(w,h){
 	this.escMode=0;
 	this.escChar='';
 }
-VT100.Line=function(size){
+VT100.Line=function(){
 	this.length=0;
-	this.chars=new Array(size);
-	this.fonts=new Array(size);
+	this.chars=new Array();
+	this.fonts=new Array();
 };
-VT100.prototype.write=function(c){
-	switch(this.escMode){
-		case 0:
-			if(c=='\x1B')this.escMode=1;
-			else if(c<'\x20')this.parseSpecial(c.charCodeAt(0));
-			else{this.put(c);if(c.charCodeAt(0)>=0x2E80)this.put('');}
-			return;
-		case 1:
-			if(c=='[')this.escMode=2;
-			else if(c=='(')this.escMode=3;
-			else if(c==')')this.escMode=4;
-			else{this.parseEscape(c);this.escMode=0;}
-			return;
-		case 2:
-			if(('A'<=c&&c<='Z')||('a'<=c&&c<='z')){this.parseEscapeK(c);this.escMode=0;this.escChar='';}
-			else this.escChar+=c;
-			return;
-		case 3:this.parseEscapeL(c);this.escMode=0;return;
-		case 4:this.parseEscapeR(c);this.escMode=0;return;
+VT100.prototype.resize=function(w,h){
+	while(this.line.length>this.H)this.line.pop();
+	this.W=w;
+	this.H=h;
+	while(this.line.length<this.H){
+		this.scrollEnd++;
+		this.line.push(new VT100.Line());
 	}
+	while(this.line.length>this.H){
+		this.line.shift();
+		this.scrollStart--;
+		this.scrollEnd--;
+		this.cursorY--;
+	}
+	for(var i=0;i<h;i++)if(!this.line[i])this.line[i]=new VT100.Line();
+	if(this.scrollStart<0)this.scrollStart=0;
+	if(this.scrollEnd<1)this.scrollEnd=1;
+	if(this.cursorY<0)this.cursorY=0;
+}
+VT100.prototype.write=function(c){
+	try{
+		switch(this.escMode){
+			case 0:
+				if(c=='\x1B')this.escMode=1;
+				else if(c<'\x20')this.parseSpecial(c.charCodeAt(0));
+				else{this.put(c);if(c.charCodeAt(0)>=0x2E80)this.put('');}
+				return;
+			case 1:
+				if(c=='[')this.escMode=2;
+				else if(c=='(')this.escMode=3;
+				else if(c==')')this.escMode=4;
+				else{this.parseEscape(c);this.escMode=0;}
+				return;
+			case 2:
+				if(('A'<=c&&c<='Z')||('a'<=c&&c<='z')){this.parseEscapeK(c);this.escMode=0;this.escChar='';}
+				else this.escChar+=c;
+				return;
+			case 3:this.parseEscapeL(c);this.escMode=0;return;
+			case 4:this.parseEscapeR(c);this.escMode=0;return;
+		}
+	}catch(e){}
 }
 VT100.prototype.parseSpecial=function(c){
 	switch(c){
@@ -47,7 +68,11 @@ VT100.prototype.parseSpecial=function(c){
 }
 VT100.prototype.parseEscapeL=function(c){}
 VT100.prototype.parseEscapeR=function(c){}
-VT100.prototype.parseEscape=function(c){switch(c){case 'M':this.scrollCursor(this.cursorX,this.cursorY-1);break;}}
+VT100.prototype.parseEscape=function(c){
+	switch(c){
+		case 'M':this.scrollCursor(this.cursorX,this.cursorY-1);break;
+	}
+}
 VT100.prototype.parseEscapeK=function(cmd){
 	switch(cmd){
 		case 'A':{
@@ -166,6 +191,7 @@ VT100.prototype.parseEscapeK=function(cmd){
 VT100.prototype.put=function(c){
 	if(this.cursorX>=this.W)this.scrollCursor(0,this.cursorY+1);
 	var ln=this.line[this.cursorY];
+	if(!ln)return;
 	if(this.insertMode){
 		for(var i=ln.length;i>this.cursorX;i--){ln.chars[i]=ln.chars[i-1];ln.fonts[i]=ln.fonts[i-1];}
 		ln.chars[this.cursorX]=c;
@@ -246,8 +272,8 @@ function Terminal(id,w,h,color){
 	this.setColor(color?color:Terminal.defaultColorList[0]);
 }
 Terminal.prototype.resize=function(w,h){
-	this.W=this.vt100.W=w;
-	this.H=this.vt100.H=h;
+	this.W=w;this.H=h;
+	this.vt100.resize(w,h);
 	for(var i=0;i<h;i++)if(!this.vt100.line[i])this.vt100.line[i]=new VT100.Line(w);
 	this.calcSize();
 }
@@ -300,6 +326,7 @@ Terminal.prototype.updateView=function(){
 		var fontprev=-1;
 		var specialhalfprev=-1;
 		var line=this.vt100.line[i];
+		if(!line)line=new VT100.Line();
 		for(var j=0;j<line.length;j++){
 			var font=line.fonts[j];if(fontprev<0)fontprev=font;
 			var c=line.chars[j];
@@ -321,12 +348,12 @@ Terminal.prototype.updateView=function(){
 				specialhalfprev=specialhalf;
 			}
 		}
-					var span=document.createElement("SPAN");
-					if(specialhalfprev){
-						for(var k=0;k<s.length;k++)span.appendChild(this.createHalfChar(s.charAt(k)));
-					}else span.textContent=s;
-					this.setSpanFont(span,fontprev);
-					div.appendChild(span);
+		var span=document.createElement("SPAN");
+		if(specialhalfprev){
+			for(var k=0;k<s.length;k++)span.appendChild(this.createHalfChar(s.charAt(k)));
+		}else span.textContent=s;
+		this.setSpanFont(span,fontprev);
+		div.appendChild(span);
 		div.appendChild(document.createElement("BR"));
 		this.text.appendChild(div);
 	}
