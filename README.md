@@ -45,6 +45,7 @@
 
 6. open `http://[hostname]:[port]/screenx.html` with your web browser.
 
+   Then, you can see your screen is being broadcasted like the screenshot on the top! Enjoy :-)
 
 
 ## Settings
@@ -83,9 +84,13 @@ __It's true that ScreenX creates some kind of security holes.__ So, we strongly 
 
 If you use this system on not such servers, we recommend to read the code before running ScreenX in order to understand how dangerous it is. And please do it at your own risk.
 
+
 ## Contact
 
-If you find any problem on ScreenX, we're very welcome to correct the code. Please send us your pull requests.
+If you find any issue on ScreenX, please let us know it on [this issue tracking system](https://github.com/tompng/screenx/issues).
+
+Also, we're very welcome to your pull requests.
+
 
 ## License
 
