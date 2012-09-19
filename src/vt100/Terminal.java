@@ -228,12 +228,11 @@ public class Terminal{
 				return;
 			}
 			case 'J':{
-				if(escLength==1&&escChar[0]=='2'){
-					moveCursor(0,0);
-					for(int i=0;i<H;i++)line[i].length=0;
-					return;
-				}else if(escLength==1&&escChar[0]=='1'){
+				if(escLength==1&&escChar[0]=='1'){
 					for(int i=0;i<=cursorY;i++)line[i].length=0;
+					moveCursor(0,0);
+				}else if(escLength==1&&escChar[0]=='2'){
+					for(int i=0;i<H;i++)line[i].length=0;
 					moveCursor(0,0);
 				}else{
 					for(int i=cursorY;i<H;i++)line[i].length=0;
@@ -242,9 +241,15 @@ public class Terminal{
 				return;
 			}
 			case 'K':{
-				if(escLength==0){
+				if(escLength==1&&escChar[0]=='1'){
+					for(int i=0;i<cursorX;i++){
+						line[cursorY].chars[i]=' ';
+						line[cursorY].fonts[i]=fontDefault;
+					}
+				}else if(escLength==1&&escChar[0]=='2'){
+					line[cursorY].length=0;
+				}else{
 					line[cursorY].length=cursorX;
-					return;
 				}
 				return;
 			}

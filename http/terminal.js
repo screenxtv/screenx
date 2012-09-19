@@ -104,12 +104,11 @@ VT100.prototype.parseEscapeK=function(cmd){
 			return;
 		}
 		case 'J':{
-			if(this.escChar=='2'){
-				this.moveCursor(0,0);
-				for(var i=0;i<this.H;i++)this.line[i].length=0;
-				return;
-			}else if(this.escChar=='1'){
+			if(this.escChar=='1'){
 				for(var i=0;i<=this.cursorY;i++)this.line[i].length=0;
+				this.moveCursor(0,0);
+			}else if(this.escChar=='2'){
+				for(var i=0;i<this.H;i++)this.line[i].length=0;
 				this.moveCursor(0,0);
 			}else{
 				for(var i=this.cursorY;i<this.H;i++)this.line[i].length=0;
@@ -118,9 +117,15 @@ VT100.prototype.parseEscapeK=function(cmd){
 			return;
 		}
 		case 'K':{
-			if(!this.escChar){
+			if(this.escChar=='1'){
+				for(var i=0;i<this.cursorX;i++){
+					this.line[this.cursorY].chars[i]=' ';
+					this.line[this.cursorY].fonts[i]=this.fontDefault;
+				}
+			}else if(this.escChar=='2'){
+				this.line[this.cursorY].length=0;
+			}else{
 				this.line[this.cursorY].length=this.cursorX;
-				return;
 			}
 			return;
 		}
@@ -363,14 +368,14 @@ Terminal.prototype.updateView=function(){
 Terminal.defaultColorList=[
 	{
 		name:"white",
-		normal:["#000","#F00","#0F0","#AA0","#00F","#F0F","#0AA","white"],
-		highlight:["#666","#F60","#0F6","#AF0","#60F","#F0A","#06A","white"],
+		normal:["#000","#F00","#0F0","#AA0","#00F","#F0F","#0AA","#BBB"],
+		highlight:["#666","#F60","#0F6","#AF0","#60F","#F0A","#06A","#BBB"],
 		foreground:"black",background:"white",emphasis:"#600",cursor:"#00F"
 	},
 	{
 		name:"black",
-		normal:["#FFF","#F66","#4F4","#FF0","#88F","#F0F","#0FF","black"],
-		highlight:["#AAA","#F00","#6F6","#AA0","#66F","#F6F","#6FF","black"],
+		normal:["#FFF","#F66","#4F4","#FF0","#88F","#F0F","#0FF","#444"],
+		highlight:["#AAA","#F00","#6F6","#AA0","#66F","#F6F","#6FF","#444"],
 		foreground:"white",background:"black",emphasis:"#FAA",cursor:"#CCF"
 	},
 	{
@@ -385,10 +390,4 @@ Terminal.defaultColorList=[
 		highlight:["#000000","#990000","#00A600","#999900","#0000B3","#B300B3","#00A6B3","#BFBFBF"],
 		foreground:"#BFFFBF",background:"#001F00",emphasis:"#7FFF7F",cursor:"#FFFFFF"
 	},
-	{
-		name:"icon",
-		normal:["#000000","#990000","#00A600","#999900","#0000B3","#B300B3","#00A6B3","#BFBFBF"],
-		highlight:["#000000","#990000","#00A600","#999900","#0000B3","#B300B3","#00A6B3","#BFBFBF"],
-		foreground:"#000000",background:"url(/favicon.ico)",backgroundColor:"white",emphasis:"#333333",cursor:"#000000"
-	}
 ];
