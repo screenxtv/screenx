@@ -85,6 +85,14 @@ __It's true that ScreenX creates some kind of security holes.__ So, we strongly 
 If you use this system on not such servers, we recommend to read the code before running ScreenX in order to understand how dangerous it is. And please do it at your own risk.
 
 
+## Related Works
+
+- [ScreenX TV](http://screenx.tv) 
+- [ScreenX TV Sandbox](https://github.com/yasulab/screenxtv-sandbox)
+- [ScreenX TV GCC Client](https://github.com/tompng/screenxtv-gcc-client)
+- [ScreenX](https://github.com/tompng/screenx) (内部のソフトウェア)
+
+
 ## Contact
 
 If you find any issue on ScreenX, please let us know it on [this issue tracking system](https://github.com/tompng/screenx/issues).
