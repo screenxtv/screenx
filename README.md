@@ -87,11 +87,9 @@ If you use this system on not such servers, we recommend to read the code before
 
 ## Related Works
 
-- [ScreenX TV](http://screenx.tv) 
+- [ScreenX TV](http://screenx.tv): ScreenX for Web Service
 - [ScreenX TV Sandbox](https://github.com/yasulab/screenxtv-sandbox)
 - [ScreenX TV GCC Client](https://github.com/tompng/screenxtv-gcc-client)
-- [ScreenX](https://github.com/tompng/screenx) (内部のソフトウェア)
-
 
 ## Contact
 
