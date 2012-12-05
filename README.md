@@ -90,6 +90,7 @@ If you use this system on not such servers, we recommend to read the code before
 - [ScreenX TV](http://screenx.tv): ScreenX for Web Service
 - [ScreenX TV Sandbox](https://github.com/yasulab/screenxtv-sandbox)
 - [ScreenX TV GCC Client](https://github.com/tompng/screenxtv-gcc-client)
+- [ScreenX TV Ruby Client](https://github.com/tompng/screenxtv-ruby-client)
 
 ## Contact
 
