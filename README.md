@@ -19,7 +19,7 @@
 
 1. download source code of ScreenX:
    
-   `git clone https://github.com/tompng/screenx.git`.
+   `git clone https://github.com/screenxtv/screenx.git`.
 
 2. build ScreenX:
 
@@ -87,12 +87,12 @@ If you use this system on not such servers, we recommend to read the code before
 
 ## Related Works
 
-- [ScreenX TV](http://screenx.tv): ScreenX for Web Service
-- [ScreenX TV Sandbox](https://github.com/yasulab/screenxtv-sandbox)
-- [ScreenX TV GCC Client](https://github.com/tompng/screenxtv-gcc-client)
-- [ScreenX TV Ruby Client](https://github.com/tompng/screenxtv-ruby-client)
-- [ScreenX TV News](https://github.com/yasulab/screenxtv-news)
-
+- [ScreenX TV](http://screenx.tv/)
+- [ScreenX TV GCC Client](https://github.com/screenxtv/screenxtv-gcc-client)
+- [ScreenX TV Ruby Client](https://github.com/screenxtv/screenxtv-ruby-client)
+- [ScreenX TV Sandbox](https://github.com/screenxtv/screenxtv-sandbox)
+- [ScreenX TV News](https://github.com/screenxtv/screenxtv-news)
+- [ScreenX](https://github.com/screenxtv/screenx) (Java-based stand-alone Software)
 
 ## Contact
 
