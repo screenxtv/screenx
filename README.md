@@ -1,5 +1,8 @@
 # What's screenx?
 
+NOTE: This is an obsolete repo. If you'd like to see/contribute to the prouction code of [ScreenX TV](http://screenx.tv/), 
+feel free to contact [@yasulab](http://twitter.com/).
+
 ### ScreenX is a real-time terminal broadcasting system. It enables you to broadcast your screen and control it from web browser.
 
 ![Screenshot of ScreenX](https://dl.dropbox.com/u/2819285/screenx-ss.png)
