@@ -1,7 +1,7 @@
 # What's screenx?
 
-NOTE: This is an obsolete repo. If you'd like to see/contribute to the prouction code of [ScreenX TV](http://screenx.tv/), 
-feel free to contact [@yasulab](http://twitter.com/).
+NOTE: This is an obsolete repo. If you'd like to see/contribute to the latest code of [ScreenX TV](http://screenx.tv/), check out [screenxtv/screenxtv-core](https://github.com/screenxtv/screenxtv-core/) repository.
+
 
 ### ScreenX is a real-time terminal broadcasting system. It enables you to broadcast your screen and control it from web browser.
 
@@ -91,6 +91,7 @@ If you use this system on not such servers, we recommend to read the code before
 ## Related Works
 
 - [ScreenX TV](http://screenx.tv/)
+- [ScreenX TV Core](https://github.com/screenxtv/screenxtv-core/)
 - [ScreenX TV GCC Client](https://github.com/screenxtv/screenxtv-gcc-client)
 - [ScreenX TV Ruby Client](https://github.com/screenxtv/screenxtv-ruby-client)
 - [ScreenX TV Sandbox](https://github.com/screenxtv/screenxtv-sandbox)
